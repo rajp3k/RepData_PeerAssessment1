@@ -1,0 +1,105 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true
+---
+
+
+## Loading and preprocessing the data
+
+```{r,echo=TRUE}
+
+activity <- read.csv(paste("repdata_data_activity","activity.csv",sep = "/"))
+
+
+```
+
+## What is mean total number of steps taken per day?
+
+```{r,echo = TRUE}
+
+steps_per_day <- as.data.frame(with(activity,tapply(steps,date,sum,na.rm = TRUE)))
+
+colnames(steps_per_day) <- "number_of_steps"
+
+print(steps_per_day)
+hist(steps_per_day[ ,1],breaks = 61,xlab = "number_of_steps")
+
+mean_per_day <- mean(steps_per_day[ ,1])
+print(mean_per_day)
+
+median_per_day <- median(steps_per_day[ ,1])
+print(median_per_day)
+
+```
+
+## What is the average daily activity pattern?
+
+``` {r,echo = TRUE}
+
+steps_per_interval <- as.data.frame(with(activity, tapply(steps,interval,mean,na.rm = TRUE)))
+
+interval <- rownames(steps_per_interval)
+
+plot(interval,steps_per_interval[ ,1],type = "l",ylab = "number_of_steps")
+
+index_max_steps <- which.max(steps_per_interval[ ,1])
+
+print(interval[index_max_steps])
+
+```
+
+## Imputing missing values
+
+``` {r,echo = TRUE}
+
+number_na <- sum(is.na(activity))
+print(number_na)
+
+mean_for_interval <- round(mean(activity[ ,1],na.rm = TRUE))
+
+activity_no_na <- activity
+
+for (i in 1:nrow(activity_no_na)) {
+        if (is.na(activity_no_na[i,1])) {
+                activity_no_na[i,1] = mean_for_interval
+        }
+}
+
+steps_per_day_no_na <- as.data.frame(with(activity_no_na,tapply(steps,date,sum)))
+
+hist(steps_per_day_no_na[ ,1],breaks = 61,xlab = "number_of_steps")
+
+mean_per_day_no_na <- mean(steps_per_day_no_na[ ,1])
+
+print(mean_per_day_no_na)
+
+median_per_day_no_na <- median(steps_per_day_no_na[ ,1])
+
+print(median_per_day_no_na)
+
+```
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+``` {r,echo = TRUE}
+
+library(dplyr)
+library(lattice)
+
+activity_no_na$date <- as.Date(activity_no_na$date)
+
+activity_no_na$day <- weekdays(activity_no_na$date)
+
+weekend <- c("Saturday","Sunday")
+
+activity_no_na$weekend <- factor((activity_no_na$day %in% weekend),levels=c(FALSE,TRUE),labels = c("weekday","weekend"))
+
+activity_ds <- activity_no_na %>%
+        group_by(weekend,interval) %>%
+        summarize_at(vars(steps),mean)
+
+xyplot(activity_ds$steps ~ activity_ds$interval | activity_ds$weekend,type = "l",xlab = "Interval",ylab = "Number of steps",layout = c(1,2))
+
+```
